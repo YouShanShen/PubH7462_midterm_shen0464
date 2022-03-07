@@ -87,7 +87,10 @@ Continent_data %>% as.tibble() %>%
     population_sample_size =  map_dbl(.x = data, ~.x %>% pull(population) %>% n_unique()) ,
    
     all_unique  = ( n_unique_country == population_sample_size )
-  )  
+  )  %>% 
+  dplyr::select(-data) %>% 
+  gt() %>%
+  as_raw_html
 
 ```
 
@@ -131,7 +134,7 @@ unnest_Continent_data <- Continent_data %>%
     ) %>%
   dplyr::select( -c("population_density", "diabetes_prevalence", "gdp_per_capita", "median_age", "human_development_index")) 
 
-unnest_Continent_data %>% gt_preview()
+unnest_Continent_data %>%  head() %>% gt() %>% as_raw_html
 
 
 covid_data <- unnest_Continent_data %>%
@@ -143,7 +146,8 @@ covid_data <- unnest_Continent_data %>%
   ) %>% 
   unnest(c(cumulative_cases,cumulative_deaths,data))
 
-covid_data %>% gt_preview()
+covid_data %>% head() %>% gt() %>% as_raw_html
+
 
 ```
 ```{r, results = 'hide', fig.show='hide'}
@@ -235,10 +239,6 @@ gt_covid19 <- covid19_summary %>%
     missing_text = ' ') %>%
   tab_source_note(
      source_note = "Data from Jan. 2020 - Feb. 2022, extracted from Our World In Data’s Github")
-
-webshot::install_phantomjs(version = "2.1.1",
-                           baseURL = "https://github.com/wch/webshot/releases/download/v0.3.1/",
-                           force = FALSE)
  
 dir.create("./figures", showWarnings = FALSE)
 gtsave(gt_covid19, "./figures/gt_covid19.png") 
@@ -266,6 +266,9 @@ Top5_country <- covid_data %>%
 
 Top5_summary <-  covid_data %>%
   filter( country %in% Top5_country$country) %>% 
+  mutate(continent = as.character(continent )) %>%
+  mutate(continent = str_replace(continent,"North","North America"),
+         continent = str_replace(continent,"South","South America")) %>%
   group_by(continent, country) %>%
   summarise( "Total Cases" = sum(new_cases),
              "Daily Average Cases" = mean(new_cases),
@@ -275,6 +278,7 @@ Top5_summary <-  covid_data %>%
     Country = country) %>%
   arrange(desc(`Total Cases`)) 
   
+ 
 Top5_summary_gt <- Top5_summary %>%
   gt() %>% 
   tab_header("COVID-19 Cases Top 5 Countries per Continent Summary") %>%
@@ -426,7 +430,7 @@ rolling_average <- covid_data %>%
 rolling_average_cases_gg <- rolling_average %>%
   ggplot(aes( x = date) ) +
     geom_col(aes(y = new_cases_sum, fill = "New Cases"), size = 1) +
-    geom_line(aes(y = `7 days new cases_sum`, color = "7 Days New Cases"), size = 1.5, group = 1) +
+    geom_line(aes(y = `7 days new cases_sum`, color = "7 Days New Cases"), size = 1, group = 1) +
     labs(
       x = "Date",
       y = "Number of Cases",
@@ -439,7 +443,7 @@ rolling_average_cases_gg <- rolling_average %>%
 rolling_average_gg <- rolling_average %>%
   ggplot(aes( x = date) ) +
   geom_col(aes(y = new_deaths_sum, fill = "New Deaths"), size = 1) +
-  geom_line(aes(y = `7 days new deaths_sum`, color = "7 Days New Deaths"), size = 1.5, group = 1) +
+  geom_line(aes(y = `7 days new deaths_sum`, color = "7 Days New Deaths"), size = 1, group = 1) +
   labs(
     x = "Date",
     y = "Number of Deaths",
